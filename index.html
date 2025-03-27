@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Spotify Web Playback</title>
+    <style>
+      body {
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fbc2eb);
+        color: #ffffff;
+      }
+      header {
+        background: linear-gradient(90deg, #ff6a00, #ee0979);
+        padding: 20px;
+        font-size: 28px;
+        font-weight: bold;
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      }
+      #content {
+        margin: 40px auto;
+        max-width: 500px;
+        padding: 30px;
+        background: linear-gradient(145deg, #ffecd2, #fcb69f);
+        border-radius: 20px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      }
+      #songDetails {
+        margin-top: 20px;
+        font-size: 20px;
+        color: #ff6a00;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 18px;
+        margin: 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #ff6a00, #ee0979);
+        color: #ffffff;
+        font-weight: bold;
+        transition: background 0.3s ease, transform 0.2s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+      button:hover {
+        background: linear-gradient(90deg, #ee0979, #ff6a00);
+        transform: scale(1.1);
+      }
+      button:disabled {
+        background: #cccccc;
+        color: #666666;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>🎵 Spotify Fun Player 🎶</header>
+    <div id="content">
+      <button id="loginButton">Login with Spotify</button>
+      <button id="randomSongButton" style="display: none;">Play Random Song</button>
+      <div id="songDetails"></div>
+    </div>
+    <script>
+      const SPOTIFY_CLIENT_ID = '7f00edb5d9c64d9f9dad7c68f98f1bbb';
+      const REDIRECT_URI = window.location.origin + window.location.pathname;
+      const AUTHORIZATION_ENDPOINT = 'https://accounts.spotify.com/authorize';
+
+      const songArray = [
+        '23riZwUBUoOxA5vzjbv089',
+        '0Fyj9w0HVfjoxm9S8nGClt',
+        '2B98ljvzqpCVgt5reTHq28',
+        '0jVo3e34A15l6MNu1O3cfa',
+        '2pmN85k5m9nO1rWaCDdrNE',
+        '4OXvpSxeoKVrQ7B3vdyCug',
+        '3RiPr603aXAoi4GHyXx0uy',
+        '7iN1s7xHE4ifF5povM6A48',
+        '1Jmqubf9kGkWeYQXQKImL5',
+        '5qxfB3e5ZjHYoNcMxPR2J7',
+        '2zVNIG9cfMyFxt8XqJ64s4',
+        '6urCAbunOQI4bLhmGpX7iS',
+        '1lCRw5FEZ1gPDNPzy1K4zW',
+        '6ZJ7gv4YmbFAHCHMwsB8ZL',
+        '5dXJ1SoksFkgdx3yxIoYNO',
+        '6LgJvl0Xdtc73RJ1mmpotq',
+        '6KOtheMY0KN4s9TrQHr9It',
+        '5Z4EgTCCoObfO1WfrvrQ9v',
+        '66iVaTevAKXlhMmCmbUSWk',
+        '4o8L1f6yH1kiCSNYAXAVWW',
+        '0q1exbzIDRxqJ6VUKH3seg',
+        '4vhVDkSx9RSb2k6mWFMYNI',
+        '44aTAUBF0g6sMkMNE8I5kd',
+        '3CeCwYWvdfXbZLXFhBrbnf',
+        '273QnyCvJB65rScHJ1nPZb',
+        '3GfOAdcoc3X5GPiiXmpBjK',
+        '3yBuEy5DmmV4tRL5ASRxlE',
+        '4pryE6cN2gFL1FVF5fYINl',
+        '2zzLRQ78kKfPTx8FJQCdC2',
+        '4OROzZUy6gOWN4UGQVaZMF',
+        '2K22nUTdyr48JDwI5t906t',
+        '6kooDsorCpWVMGc994XjWN',
+        '6khoye7kysa6cLGY0AO9dO',
+        '2NQhQlcVAcDRN3jf6FDTlm',
+        '4bO6DljpuAeQh6HS20i0I5',
+        '78His8pbKjbDQF7aX5asgv',
+        '3kfD3cIPKo4iAaVnZsRdYL',
+        '4N0fzRX3T7QkOecp3pkWpp',
+        '65NTcXUtOb27NHKQ4fAcw0',
+        '72Z17vmmeQKAg8bptWvpVG',
+        '748yv6bb3l3CcKS45a6SZ8',
+        '7vubCYwMND42wTDf2ULHeZ',
+        '0xmjwnQ3FNE6HuWCt2nHdZ',
+        '02utYejOAb0Pw7r4tkbfOu',
+      ];
+
+      function getAccessTokenFromUrl() {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        return params.get('access_token');
+      }
+
+      function redirectToSpotifyAuth() {
+        const scopes = [
+          'streaming',
+          'user-read-email',
+          'user-read-private',
+          'user-modify-playback-state',
+          'user-read-playback-state',
+        ];
+        const authUrl = `${AUTHORIZATION_ENDPOINT}?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(
+          REDIRECT_URI,
+        )}&scope=${encodeURIComponent(scopes.join(' '))}`;
+        window.location.href = authUrl;
+      }
+
+      document.getElementById('loginButton').addEventListener('click', () => {
+        redirectToSpotifyAuth();
+      });
+
+      document.getElementById('randomSongButton').addEventListener('click', () => {
+        playRandomSong();
+      });
+
+      window.onload = function () {
+        const token = getAccessTokenFromUrl();
+        if (token) {
+          window.accessToken = token;
+          console.log(token);
+          window.history.replaceState({}, document.title, REDIRECT_URI); // Remove token from URL
+          window.initPlayer(token); // Initialize the player with the token
+          document.getElementById('loginButton').style.display = 'none'; // Hide login button
+          document.getElementById('randomSongButton').style.display = 'inline-block';
+        }
+      };
+
+      function playRandomSong() {
+        const randomIndex = Math.floor(Math.random() * songArray.length);
+        const songId = songArray[randomIndex];
+        document.getElementById('songDetails').innerText = `Playing song with ID: ${songId}`;
+        window.playSong(songId);
+      }
+
+      window.initPlayer = function (token) {
+        window.accessToken = token;
+        const script = document.createElement('script');
+        script.onload = function () {
+          console.log('Spotify SDK loaded.');
+          window.spotifyPlayer = new Spotify.Player({
+            name: 'React Native Player',
+            getOAuthToken: (cb) => {
+              cb(token);
+            },
+            volume: 0.5,
+          });
+
+          window.spotifyPlayer.addListener('ready', ({ device_id }) => {
+            console.log('Ready with Device ID ' + device_id);
+            window.deviceId = device_id; // Store device ID
+          });
+
+          window.spotifyPlayer.addListener('not_ready', () => {
+            console.log('Spotify Player is not ready.');
+          });
+
+          window.spotifyPlayer.addListener('initialization_error', ({ message }) => {
+            console.error('Initialization Error:', message);
+          });
+
+          window.spotifyPlayer.addListener('authentication_error', ({ message }) => {
+            console.error('Authentication Error:', message);
+          });
+
+          window.spotifyPlayer.addListener('account_error', ({ message }) => {
+            console.error('Account Error:', message);
+          });
+
+          window.spotifyPlayer.connect().then((success) => {
+            if (success) {
+              console.log('Spotify Player connected successfully.');
+            } else {
+              console.error('Failed to connect Spotify Player.');
+            }
+          });
+        };
+        script.onerror = function () {
+          console.log('Failed to load Spotify SDK.');
+        };
+        script.src = 'https://sdk.scdn.co/spotify-player.js';
+        document.head.appendChild(script);
+      };
+
+      window.playSong = function (songId) {
+        if (window.deviceId) {
+          fetch(
+            'https://api.spotify.com/v1/me/player/play?device_id=' +
+              window.deviceId,
+            {
+              method: 'PUT',
+              body: JSON.stringify({ uris: ['spotify:track:' + songId] }),
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + window.accessToken,
+              },
+            },
+          )
+            .then((response) => {
+              if (response.ok) {
+                console.log('Song play request sent successfully.');
+              } else {
+                console.log(
+                  'Song play request failed with status: ' + response.status,
+                );
+              }
+            })
+            .catch((error) => {
+              console.log(
+                'Error sending song play request: ' + error.message,
+              );
+            });
+        } else {
+          console.log('No device ID available. Ensure the Spotify Player is ready.');
+        }
+      };
+
+      window.pauseSong = function () {
+        if (window.deviceId) {
+          fetch(
+            'https://api.spotify.com/v1/me/player/pause?device_id=' +
+              window.deviceId,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + window.accessToken,
+              },
+            },
+          )
+            .then((response) => {
+              if (response.ok) {
+                console.log('Song pause request sent successfully.');
+              } else {
+                console.log(
+                  'Song pause request failed with status: ' + response.status,
+                );
+              }
+            })
+            .catch((error) => {
+              console.log(
+                'Error sending song pause request: ' + error.message,
+              );
+            });
+        } else {
+          console.log('No device ID available.');
+        }
+      };
+
+      window.resumeSong = function () {
+        if (window.deviceId) {
+          fetch(
+            'https://api.spotify.com/v1/me/player/play?device_id=' +
+              window.deviceId,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + window.accessToken,
+              },
+            },
+          )
+            .then((response) => {
+              if (response.ok) {
+                console.log('Song resume request sent successfully.');
+              } else {
+                console.log(
+                  'Song resume request failed with status: ' + response.status,
+                );
+              }
+            })
+            .catch((error) => {
+              console.log(
+                'Error sending song resume request: ' + error.message,
+              );
+            });
+        } else {
+          console.log('No device ID available.');
+        }
+      };
+    </script>
+  </body>
+</html>
